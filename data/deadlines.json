@@ -1,0 +1,62 @@
+[
+  {
+    "id": "evt-1",
+    "title": "CS204: Distributed Systems Lab 3 Submission",
+    "category": "Assignment",
+    "targetUrl": "https://canvas.instructure.com",
+    "targetTime": "2026-11-01T23:59:00.000Z",
+    "remind5Days": true,
+    "remind1Day": true,
+    "remind15Min": true,
+    "remindExact": true,
+    "notes": "Roll No: 2024CS089 | Group 4 Repo",
+    "mode": "ALARM_REDIRECT",
+    "status": "ACTIVE",
+    "createdAt": "2026-10-27T16:50:00.000Z"
+  },
+  {
+    "id": "evt-2",
+    "title": "Machine Learning Midterm Term Paper",
+    "category": "Assignment",
+    "targetUrl": "https://classroom.google.com",
+    "targetTime": "2026-11-05T17:00:00.000Z",
+    "remind5Days": true,
+    "remind1Day": true,
+    "remind15Min": true,
+    "remindExact": true,
+    "notes": "Topic: Transformer attention mechanisms in vision models",
+    "mode": "REMINDER",
+    "status": "ACTIVE",
+    "createdAt": "2026-10-27T16:50:00.000Z"
+  },
+  {
+    "id": "evt-3",
+    "title": "IRCTC Tatkal Train Ticket Booking",
+    "category": "Reservation",
+    "targetUrl": "https://www.irctc.co.in/nget/train-search",
+    "targetTime": "2026-10-29T10:00:00.000Z",
+    "remind5Days": false,
+    "remind1Day": true,
+    "remind15Min": true,
+    "remindExact": true,
+    "notes": "Train: 12952 Rajdhani Express | Master list pre-saved",
+    "mode": "REDIRECT",
+    "status": "ACTIVE",
+    "createdAt": "2026-10-27T16:50:00.000Z"
+  },
+  {
+    "id": "evt-1793114407739",
+    "title": "study time",
+    "category": "Assignment",
+    "targetUrl": "https://ums.lpu.in/lpuums/LoginNew.aspx",
+    "targetTime": "2026-10-27T15:41:00.000Z",
+    "remind5Days": true,
+    "remind1Day": true,
+    "remind15Min": true,
+    "remindExact": true,
+    "notes": "",
+    "mode": "ALARM_REDIRECT",
+    "status": "ACTIVE",
+    "createdAt": "2026-10-27T15:20:07.739Z"
+  }
+]

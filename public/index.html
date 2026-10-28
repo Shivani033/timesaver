@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TimeSaver-Never Miss What Matters</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Mobile & PWA Configuration (Android, iOS, Windows) -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#FAF7F2">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Cadence">
+  <!-- PDF.js CDN for client-side syllabus & assignment PDF parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body class="beige-theme">
+
+  <!-- TOP EDITORIAL NAVIGATION -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="brand">
+        <span class="brand-glyph">✦</span>
+        <div class="brand-meta">
+          <span class="brand-name">TimeSaver</span>
+          <span class="brand-tag">Never Miss What Matters</span>
+        </div>
+      </div>
+      <div class="nav-actions">
+        <button class="btn btn-outline" id="btnNavScheduled">
+          <span class="badge-count" id="navScheduleCount">0</span>
+          <span>Your Scheduled Reminders</span>
+        </button>
+        <button class="btn btn-ghost" id="btnEnableDesktopNotifs" title="Allow system alerts so reminders pop up over any window or tab">
+          <span id="notifStatusIcon">🔔</span>
+          <span id="notifStatusText">Enable Desktop Alerts</span>
+        </button>
+        <a href="/api/deadlines/export-ics" class="btn btn-ghost" id="btnExportIcs" title="Download .ics calendar so your phone or Mac calendar rings even when computer is turned off">
+          <span>📅</span> <span>Sync Calendar</span>
+        </a>
+        <button class="btn btn-outline" id="btnInstallPwa" style="display:none;" title="Install Cadence to your Android or Desktop Home Screen">
+          <span>📱</span> <span>Install App</span>
+        </button>
+        <button class="btn btn-primary" id="btnOpenManualAdd">
+          <span>＋</span> Add Manually
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO SECTION -->
+  <section class="hero-section">
+    <div class="container-narrow">
+      <div class="hero-badge">
+        <span class="badge-dot"></span> DayPlanner
+      </div>
+      <h1 class="hero-title">From everyday tasks to important deadlines, stay ready for what's next.</h1>
+      <p class="hero-subtitle">
+        Upload your course syllabus, academic calendar, or assignment sheet. We automatically extract dates, prepare 5-day advance reminders, and redirect you to the right portal when it’s time to submit.
+      </p>
+
+      <!-- UPLOAD & EXTRACT CARD -->
+      <div class="upload-card">
+        <div class="upload-dropzone" id="dropzone">
+          <input type="file" id="pdfFileInput" accept=".pdf,.txt,.doc,.docx" class="file-input-hidden">
+          <div class="dropzone-icon">📑</div>
+          <h3 class="dropzone-title">Upload Assignment PDF or Syllabus</h3>
+          <p class="dropzone-sub">Drag & drop your syllabus PDF here, or <span class="browse-link">browse your files</span></p>
+          <div class="upload-formats-row">
+            <span class="format-tag">PDF</span>
+            <span class="format-tag">Plain Text</span>
+            <span class="format-tag">Automatic Date Detection</span>
+          </div>
+        </div>
+
+        <div class="paste-toggle-row">
+          <button type="button" class="btn-text" id="togglePasteBox">Or paste assignment schedule text directly ▾</button>
+        </div>
+
+        <div id="pasteScheduleBox" class="paste-box hidden">
+          <textarea id="scheduleTextInput" rows="4" placeholder="Paste your course schedule or email from professor here... e.g.:
+- Assignment 1: Neural Networks due Nov 5 at 11:59 PM (Submit on Canvas: https://canvas.edu)
+- Midterm Research Paper due Nov 12 at 5:00 PM
+- IRCTC Train Reservation opening Oct 31 at 10:00 AM"></textarea>
+          <button type="button" class="btn btn-primary" id="btnParseText">
+            <span>✨</span> Extract Deadlines from Text
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EXTRACTED DEADLINES REVIEW MODAL / DRAWER -->
+  <section id="extractionReviewSection" class="review-section hidden">
+    <div class="container">
+      <div class="review-card">
+        <div class="review-header">
+          <div>
+            <span class="review-eyebrow">Smart Extraction Results</span>
+            <h2 class="review-title">Review Detected Assignments & Set Alert Modes</h2>
+            <p class="review-sub">Select how you want to be alerted for each item:</p>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" id="btnCancelExtraction">Dismiss</button>
+        </div>
+
+        <div id="detectedItemsList" class="detected-items-grid">
+          <!-- Populated dynamically by app.js -->
+        </div>
+
+        <div class="review-footer">
+          <button type="button" class="btn btn-primary" id="btnSaveExtractedDeadlines">
+            Confirm & Schedule All Detected Items
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN SCHEDULE OVERVIEW -->
+  <main class="container schedule-section" id="scheduleSection">
+
+    <!-- MISSED ALARMS / OFFLINE RECOVERY BANNER -->
+    <div id="missedAlarmsContainer" class="missed-container hidden">
+      <div class="missed-banner-top">
+        <div class="missed-title-group">
+          <span class="missed-pill">⚠️ Missed While Away / Offline</span>
+          <span class="missed-desc">These deadlines arrived while your computer was asleep or the website was closed.</span>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline" id="btnDismissAllMissed">Clear All</button>
+      </div>
+      <div id="missedCardsList" class="missed-cards-list">
+        <!-- Dynamically populated by app.js -->
+      </div>
+    </div>
+
+    <!-- FILTER BAR -->
+    <div class="schedule-toolbar">
+      <div>
+        <h2 class="section-title">Your Scheduled Deadlines</h2>
+        <p class="section-sub">Sorted by upcoming urgency</p>
+      </div>
+      <div class="filter-pills">
+        <button class="pill active" data-filter="ALL">All Items</button>
+        <button class="pill" data-filter="REMINDER">Reminder Only</button>
+        <button class="pill" data-filter="REDIRECT">Site Redirection</button>
+        <button class="pill" data-filter="ALARM">Alarm Mode</button>
+      </div>
+    </div>
+
+    <!-- CARDS GRID -->
+    <div id="scheduleGrid" class="schedule-grid">
+      <!-- Populated dynamically -->
+    </div>
+
+    <!-- EMPTY STATE -->
+    <div id="emptyState" class="empty-state hidden">
+      <div class="empty-icon">🪶</div>
+      <h3>Your schedule is clear</h3>
+      <p>Upload a syllabus PDF or click "Add Manually" to schedule your upcoming assignments, reservations, or meetings.</p>
+    </div>
+  </main>
+
+  <!-- ============================================================== -->
+  <!-- AESTHETIC PERSISTENT ALARM / REDIRECT OVERLAY                  -->
+  <!-- ============================================================== -->
+  <div id="alarmModal" class="alarm-overlay hidden">
+    <div class="alarm-sheet">
+      <div class="alarm-tag-row">
+        <span class="alarm-status-pill">● Action Required</span>
+        <span class="alarm-clock-time" id="alarmClockTime">10:00 AM</span>
+      </div>
+
+      <div class="alarm-icon-wrap">
+        <div class="alarm-pulse-ring"></div>
+        <div class="alarm-icon-center">🔔</div>
+      </div>
+
+      <span class="alarm-sound-caption">PERSISTENT ALARM RINGING (TEE-TEE-TEE)</span>
+      <h2 id="alarmTitle" class="alarm-sheet-title">Computer Science Assignment 3</h2>
+      
+      <div class="alarm-detail-card">
+        <div class="detail-label">DESTINATION WEBSITE / PORTAL:</div>
+        <div class="detail-url" id="alarmUrl">https://canvas.university.edu</div>
+        <div id="alarmNotesBox" class="detail-notes hidden">
+          <span class="notes-chip">Notes</span>
+          <span id="alarmNotes" class="notes-text">Roll No: 2024CS089</span>
+        </div>
+      </div>
+
+      <div class="alarm-actions">
+        <!-- PRIMARY BUTTON: STOP & REDIRECT -->
+        <button id="btnAlarmRedirect" class="btn-primary-action">
+          <span class="action-icon">↗</span>
+          <div>
+            <strong>Stop Alarm & Open Website to Work</strong>
+            <small>Silences ringing, copies notes, and opens target portal</small>
+          </div>
+        </button>
+
+        <div class="alarm-secondary-actions">
+          <button id="btnAlarmSnooze" class="btn btn-outline">
+            ⏰ Snooze (2 mins)
+          </button>
+          <button id="btnAlarmDismiss" class="btn btn-ghost">
+            Silence & Dismiss
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MANUAL ADD MODAL                                              -->
+  <!-- ============================================================== -->
+  <div id="manualAddModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <h3>Schedule Deadline / Reservation</h3>
+          <p class="modal-sub">Set date, target website, and alert style</p>
+        </div>
+        <button class="btn-close" id="btnCloseManualModal">&times;</button>
+      </div>
+
+      <form id="manualAddForm" class="modal-form">
+        <div class="field-group">
+          <label>Assignment / Event Title *</label>
+          <input type="text" id="manualTitle" placeholder="e.g. CS201 Final Assignment, IRCTC Tatkal, Google Meet" required>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group flex-1">
+            <label>Category</label>
+            <select id="manualCategory">
+              <option value="Assignment">Assignment</option>
+              <option value="Exam">Exam / Quiz</option>
+              <option value="Reservation">Booking / Tatkal</option>
+              <option value="Meeting">Meeting / Sync</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="field-group flex-1">
+            <label>Due Date & Exact Time *</label>
+            <input type="datetime-local" id="manualDateTime" required>
+          </div>
+        </div>
+
+        <!-- Quick Demo Presets -->
+        <div class="quick-presets">
+          <span class="preset-label">Quick offsets:</span>
+          <button type="button" class="preset-tag" data-offset="10">⚡ 10s (Test Alarm)</button>
+          <button type="button" class="preset-tag" data-offset="300">5 Mins</button>
+          <button type="button" class="preset-tag" data-offset="86400">Tomorrow</button>
+          <button type="button" class="preset-tag" data-offset="432000">In 5 Days</button>
+        </div>
+
+        <div class="field-group">
+          <label>Website URL to Redirect / Work On *</label>
+          <input type="url" id="manualUrl" placeholder="https://canvas.instructure.com or https://irctc.co.in" required>
+          <span class="field-hint">The platform you need to open (Canvas, Moodle, Google Classroom, Booking portal).</span>
+        </div>
+
+        <!-- ALERT MODE SELECTION: USER'S EXPLICIT REQUIREMENT -->
+        <div class="field-group">
+          <label class="section-label">How do you want to be notified?</label>
+          <div class="alert-mode-selector">
+            <label class="mode-card">
+              <input type="radio" name="alertMode" value="REMINDER" checked>
+              <div class="mode-content">
+                <span class="mode-icon">🔔</span>
+                <span class="mode-name">Reminder Only</span>
+                <span class="mode-desc">Advance notification (5 days & 1 day before)</span>
+              </div>
+            </label>
+
+            <label class="mode-card">
+              <input type="radio" name="alertMode" value="REDIRECT">
+              <div class="mode-content">
+                <span class="mode-icon">↗</span>
+                <span class="mode-name">Redirect to Site</span>
+                <span class="mode-desc">Directly opens website when time comes</span>
+              </div>
+            </label>
+
+            <label class="mode-card">
+              <input type="radio" name="alertMode" value="ALARM">
+              <div class="mode-content">
+                <span class="mode-icon">⏰</span>
+                <span class="mode-name">Persistent Alarm</span>
+                <span class="mode-desc">Continuous ringing alarm until stopped</span>
+              </div>
+            </label>
+
+            <label class="mode-card">
+              <input type="radio" name="alertMode" value="ALARM_REDIRECT">
+              <div class="mode-content">
+                <span class="mode-icon">⚡</span>
+                <span class="mode-name">Alarm + Redirect</span>
+                <span class="mode-desc">Loud alarm and instant website launch</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label>Notes / Submission Details (Optional)</label>
+          <textarea id="manualNotes" rows="2" placeholder="e.g. Roll No, partner name, passenger details, login passcode (Auto-copied to clipboard)"></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="btnCancelManual">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save to Schedule</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- EDIT DEADLINE MODAL                                           -->
+  <!-- ============================================================== -->
+  <div id="editModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <h3>Edit Deadline / Reminder</h3>
+          <p class="modal-sub">Update date, target website, or alert mode</p>
+        </div>
+        <button class="btn-close" id="btnCloseEditModal">&times;</button>
+      </div>
+
+      <form id="editDeadlineForm" class="modal-form">
+        <input type="hidden" id="editId">
+        <div class="field-group">
+          <label>Assignment / Event Title *</label>
+          <input type="text" id="editTitle" required>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group flex-1">
+            <label>Category</label>
+            <select id="editCategory">
+              <option value="Assignment">Assignment</option>
+              <option value="Exam">Exam / Quiz</option>
+              <option value="Reservation">Booking / Tatkal</option>
+              <option value="Meeting">Meeting / Sync</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="field-group flex-1">
+            <label>Due Date & Exact Time *</label>
+            <input type="datetime-local" id="editDateTime" required>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label>Website URL to Redirect / Work On *</label>
+          <input type="url" id="editUrl" required>
+        </div>
+
+        <div class="field-group">
+          <label class="section-label">Alert Mode:</label>
+          <div class="alert-mode-selector">
+            <label class="mode-card">
+              <input type="radio" name="editAlertMode" value="REMINDER">
+              <div class="mode-content">
+                <span class="mode-icon">🔔</span>
+                <span class="mode-name">Reminder Only</span>
+                <span class="mode-desc">5-day & 1-day advance notice</span>
+              </div>
+            </label>
+
+            <label class="mode-card">
+              <input type="radio" name="editAlertMode" value="REDIRECT">
+              <div class="mode-content">
+                <span class="mode-icon">↗</span>
+                <span class="mode-name">Redirect to Site</span>
+                <span class="mode-desc">Opens site when time comes</span>
+              </div>
+            </label>
+
+            <label class="mode-card">
+              <input type="radio" name="editAlertMode" value="ALARM">
+              <div class="mode-content">
+                <span class="mode-icon">⏰</span>
+                <span class="mode-name">Persistent Alarm</span>
+                <span class="mode-desc">Continuous ringing alarm</span>
+              </div>
+            </label>
+
+            <label class="mode-card">
+              <input type="radio" name="editAlertMode" value="ALARM_REDIRECT">
+              <div class="mode-content">
+                <span class="mode-icon">⚡</span>
+                <span class="mode-name">Alarm + Redirect</span>
+                <span class="mode-desc">Loud alarm and instant redirect</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label>Notes / Submission Details (Optional)</label>
+          <textarea id="editNotes" rows="2"></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="btnCancelEdit">Cancel</button>
+          <button type="submit" class="btn btn-primary">Update Deadline</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- PROFESSIONAL TOAST NOTIFICATIONS CONTAINER                      -->
+  <!-- ============================================================== -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- ============================================================== -->
+  <!-- AESTHETIC CONFIRMATION DIALOG (REPLACES WINDOW.CONFIRM)         -->
+  <!-- ============================================================== -->
+  <div id="confirmModal" class="modal-backdrop hidden">
+    <div class="modal-card modal-confirm">
+      <div class="confirm-icon-wrap">
+        <span class="confirm-icon">🪶</span>
+      </div>
+      <h3 id="confirmModalTitle" class="confirm-title">Remove Deadline?</h3>
+      <p id="confirmModalMessage" class="confirm-message">This deadline will be removed from your schedule.</p>
+      <div class="confirm-actions">
+        <button type="button" class="btn btn-outline" id="btnConfirmCancel">Cancel</button>
+        <button type="button" class="btn btn-danger" id="btnConfirmProceed">Yes, Remove</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
